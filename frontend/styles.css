@@ -1,0 +1,75 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #282c34;
+    color: #ffffff;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    text-align: center;
+}
+
+.neon-title {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    color: #00ff00;
+    text-shadow: 
+        0 0 5px #00ff00, 
+        0 0 10px #00ff00,
+        0 0 15px #00ff00,
+        0 0 20px #ff00ff,
+        0 0 30px #ff00ff,
+        0 0 40px #ff00ff,
+        0 0 50px #ff00ff;
+}
+
+.magic-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.magic-form input[type="email"] {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: none;
+}
+
+.magic-form button {
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.magic-form button:hover {
+    background-color: #0056b3;
+}
+
+.status-message {
+    margin-top: 10px;
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.5s ease-in-out; /* Smooth transition */
+}
+
+.footer {
+    margin-top: 20px;
+}
+
+.footer .link {
+    color: #00ffcc; /* Link color */
+}
+.footer .link:hover {
+    text-decoration: underline; /* Underline on hover */
+}

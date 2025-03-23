@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passwordless Authentication</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="neon-title">Unlock Your Access</h1>
+        <form id="magicForm" class="magic-form">
+            <input type="email" name="email" placeholder="Enter your email" required />
+            <button type="submit">Send Magic Link</button>
+            <p id="statusMessage" class="status-message"></p>
+        </form>
+        <div class="footer">
+            <p>Already have a link? <a href="/login" class="link">Login here</a></p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

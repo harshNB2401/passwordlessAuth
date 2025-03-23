@@ -1,0 +1,20 @@
+{
+  "name": "passwordless-auth",
+  "version": "1.0.0",
+  "description": "A passwordless authentication system using magic links",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "nodemailer": "^6.10.0",
+    "nodemon": "^3.1.9",
+    "passport": "^0.7.0",
+    "passport-magic-link": "^2.1.1"
+  }
+}
