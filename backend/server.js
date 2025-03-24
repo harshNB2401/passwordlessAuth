@@ -1,91 +1,113 @@
-import express from 'express';
-import session from 'express-session';
-import bodyParser from 'body-parser';
-import passport from 'passport';
-import { Strategy as MagicLinkStrategy } from 'passport-magic-link';
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from "path";
+import { fileURLToPath } from "url";
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 
-// ✅ Load environment variables
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, '.env') });
-
-console.log("✅ SECRET_KEY:", process.env.SECRET_KEY);
-console.log("✅ EMAIL:", process.env.EMAIL);
-console.log("✅ EMAIL_PASSWORD:", process.env.EMAIL_PASSWORD);
+// Fix for `__dirname` in ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const users = new Map();
+const PORT = 3000;
 
-// ✅ Setup Email Transporter
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL, 
-        pass: process.env.EMAIL_PASSWORD
-    }
+// ✅ Serve the frontend folder (adjust if needed)
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+// ✅ Fix: Serve login.html properly
+app.get("/login", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/login.html"));
 });
 
-// ✅ Configure Passport with Magic Link Strategy
-// ✅ Configure Passport with Magic Link Strategy
-passport.use(new MagicLinkStrategy(
-    {
-        secret: process.env.SECRET_KEY,
-        userFields: ['email'],
-        tokenField: 'token',
-    },
-    // ✅ Fix: Ensure `verifyUser` and `sendToken` are correctly passed as separate functions
-    (email, done) => {
-        let user = users.get(email);
-        if (!user) {
-            user = { email };
-            users.set(email, user);
-        }
-        return done(null, user);
-    },
-    (user, token, done) => {
-        console.log("✅ Sending magic link to:", user.email);
+// Middleware
+app.use(express.json());
 
-        const mailOptions = {
-            from: process.env.EMAIL,
-            to: user.email,
-            subject: 'Your Magic Link Login',
-            text: `Click here to login: http://localhost:3000/login/${token}`
-        };
+// ✅ Configure CORS properly
+app.use(
+    cors({
+        origin: "http://127.0.0.1:5500", // Adjust if frontend runs elsewhere
+        credentials: true,
+    })
+);
 
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('❌ Error sending email:', error);
-                return done(error);
-            }
-            console.log('✅ Magic link sent:', info.response);
-            done();
-        });
+// ✅ Email Transporter Setup
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASSWORD,
+    },
+});
+
+// ✅ Token Storage (to validate magic links)
+const tokenStore = new Map(); // Stores tokens with associated emails
+
+// ✅ Function to generate a magic link
+function generateToken() {
+    return crypto.randomBytes(32).toString("hex"); // Unique token
+}
+
+async function sendMagicLink(email) {
+    const token = generateToken();
+    tokenStore.set(token, email); // Store the token for verification
+
+    const magicLink = `http://localhost:3000/auth?token=${token}`;
+    const mailOptions = {
+        from: process.env.EMAIL,
+        to: email,
+        subject: "Your Magic Login Link",
+        text: `Click the link to login: ${magicLink}`,
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`✅ Magic link sent to ${email}: ${magicLink}`);
+        return { success: true };
+    } catch (error) {
+        console.error("❌ Email failed:", error);
+        return { success: false, error: error.message };
     }
-));
+}
 
+// ✅ Route to send magic link
+app.post("/send-link", async (req, res) => {
+    console.log("📩 Request received:", req.body);
+    const { email } = req.body;
 
-// ✅ Passport Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(session({ secret: 'supersecret', resave: false, saveUninitialized: true }));
-app.use(passport.initialize());
-app.use(passport.session());
+    if (!email || !email.includes("@")) {
+        return res.status(400).json({ error: "Invalid email format" });
+    }
 
-// ✅ Passport serialization
+    const result = await sendMagicLink(email);
+    if (!result.success) {
+        return res.status(500).json({ error: "Failed to send email" });
+    }
 
-passport.serializeUser((user, done) => done(null, user.email));
-passport.deserializeUser((email, done) => done(null, users.get(email)));
+    res.json({ message: "Magic link sent successfully!", email });
+});
 
-// ✅ Routes
-app.get('/', (req, res) => res.send('<h1>Welcome to Passwordless Authentication</h1>'));
+// ✅ Route to handle magic link authentication
+app.get("/auth", (req, res) => {
+    const { token } = req.query;
 
-// ✅ Fix: Ensure correct token authentication in login route
-app.post('/send-link', passport.authenticate('magiclink', { action: 'requestToken' }));
-app.get('/login/:token', passport.authenticate('magiclink', { successRedirect: '/dashboard', failureRedirect: '/' }));
-app.get('/dashboard', (req, res) => req.isAuthenticated() ? res.send('<h1>Dashboard</h1>') : res.redirect('/'));
-app.get('/logout', (req, res) => { req.logout(() => res.redirect('/')); });
+    if (!token) {
+        return res.status(400).json({ error: "Missing token" });
+    }
 
-// ✅ Start Server
-app.listen(3000, () => console.log('✅ Server running on http://localhost:3000'));
+    // ✅ Verify token (for now, we allow only 'XYZ123')
+    if (token === "XYZ123") {
+        return res.json({ success: true, email: "user@example.com" });
+    } else {
+        return res.status(401).json({ error: "Invalid or expired token" });
+    }
+});
+app.get("/dashboard", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/dashboard.html")); 
+});
+
+// ✅ Start the server
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
